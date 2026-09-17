@@ -20,6 +20,21 @@ Updates flow the same way: `git fetch git-skeleton && git rebase git-skeleton/ma
 Conflicts on rebase are the divergence points — resolve them by keeping your
 repo's override where it differs from the shared default.
 
+## Ecosystems
+
+The shared config is ecosystem-neutral. Package manager lockfiles are always
+tracked, never ignored — each repository tracks exactly the one matching its
+package manager:
+
+- `package-lock.json` (npm)
+- `pnpm-lock.yaml` (pnpm)
+- `bun.lock` (bun)
+
+Bun needs no ignore rules of its own: its cache lives outside the repository
+and `node_modules/` is already covered. When an ecosystem grows repo-level
+artifacts, their ignore rules land here — repos that don't use the ecosystem
+simply never have matching files, so the rules stay inert.
+
 ## Contributing
 
 Please review the [Contribution Guidelines](https://github.com/99linesofcode/.github/blob/main/.github/CONTRIBUTING.md).
