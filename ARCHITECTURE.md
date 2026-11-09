@@ -4,14 +4,15 @@ The architecture document for this repository, following the
 [architecture.md](https://architecture.md) schema — built so an agent (or a
 new colleague) can comprehend the repository from this file alone. This is a
 shared-configuration starter, not a service: its "architecture" is the small
-set of files it contributes and the rebase mechanism by which consumers take
+set of files it contributes and the merge mechanism by which consumers take
 them. Fill every section; update it in the same change that alters the
 architecture it describes.
 
 ## 1. Project Structure
 
 Flat by design. The repository is the four shared configuration files plus
-the README that explains them — there is no `src/`, no build, and no
+the README that explains them, and the agent docs every repository carries
+(`AGENTS.md`, `GLOSSARY.md`, `docs/`) — there is no `src/`, no build, and no
 language toolchain.
 
 ```
@@ -21,12 +22,16 @@ git-skeleton/
 ├── .gitignore         # ignore rules every repo shares (secrets, caches, build output)
 ├── .ignore            # ignore rules for non-git tooling (devshell, lockfiles, vendored trees)
 ├── README.md          # how to consume, and the ecosystem rules
+├── AGENTS.md          # agent entry point: tracker and domain docs
+├── GLOSSARY.md        # the skeleton's own terms (consumers drop it on merge)
+├── docs/adr/          # decisions every consumer inherits
+├── docs/agents/       # tracker and domain-doc conventions for agents
 └── LICENSE
 ```
 
 **Where the logic lives.** There is no logic: each file is a declarative
 contract. The one piece of "behaviour" is the consumption mechanism — a
-consumer adds this repo as a secondary remote and rebases onto it, so a
+consumer adds this repo as a remote and merges it, so a merge
 conflict is the signal that a repo has deliberately diverged from the shared
 default.
 
@@ -37,7 +42,7 @@ default.
   ┌───────────────────────┐               ┌───────────────────────┐
   │ .editorconfig         │   git fetch   │ <project files>       │
   │ .prettierrc           │ ────────────► │ .editorconfig         │
-  │ .gitignore            │   git rebase  │ .prettierrc           │
+  │ .gitignore            │   git merge   │ .prettierrc           │
   │ .ignore               │   git-skeleton/main                   │
   │ README.md             │               │ .gitignore / .ignore  │
   └───────────────────────┘               └───────────────────────┘
@@ -70,8 +75,8 @@ None. No database, no persistent state.
 
 ## 5. External Integrations / APIs
 
-- **GitHub** — the repository is consumed over git (secondary remote +
-  rebase). No runtime API integration.
+- **GitHub** — the repository is consumed over git (a remote named
+  `git-skeleton`, then a merge). No runtime API integration.
 - The `.gitignore`/`.ignore` rules name ecosystem artifacts (npm/pnpm/bun
   lockfiles, Composer `vendor/`, Laravel and Playwright caches) but the repo
   itself integrates nothing.
@@ -79,14 +84,14 @@ None. No database, no persistent state.
 ## 6. Deployment & Infrastructure
 
 - **Consumption** (the only "deployment"):
+  `/instantiate` runs it; by hand:
   1. `git init`
-  2. `git remote add origin <REPOSITORY>`
-  3. `git remote add git-skeleton git@github.com:99linesofcode/git-skeleton.git`
-  4. `git fetch git-skeleton`
-  5. `git rebase git-skeleton/main`
+  2. `git remote add git-skeleton git@github.com:99linesofcode/git-skeleton.git`
+  3. `git fetch git-skeleton`
+  4. `git merge --allow-unrelated-histories git-skeleton/main`
 
-  Updates flow the same way (`git fetch git-skeleton && git rebase
-  git-skeleton/main`); a rebase conflict is a **divergence point**, resolved
+  Updates flow the same way (`git fetch git-skeleton && git merge
+  git-skeleton/main`); a merge conflict is a **divergence point**, resolved
   by keeping the consuming repo's override where it differs from the shared
   default.
 - **Ecosystem layers**: `node-skeleton`, `laravel-skeleton`,
@@ -107,12 +112,12 @@ None. No database, no persistent state.
 ## 8. Development & Testing Environment
 
 - **Local setup**: none required. Edit the shared file and commit; consumers
-  pick it up on their next rebase.
+  pick it up on their next merge.
 - **Testing**: none. The shared config is inert; correctness is observed in
-  consumers as a clean rebase (or a deliberate conflict).
+  consumers as a clean merge (or a deliberate conflict).
 - **Code quality / gates**: there is no linter or formatter *runner* here
   (the files are the configuration for consumers' tools). The effective gate
-  is the **rebase**: an incompatible shared change surfaces as a conflict at
+  is the **merge**: an incompatible shared change surfaces as a conflict at
   the consumer, so a breaking default cannot silently propagate.
 - `.prettierrc` carries empty `plugins`/`overrides` arrays; per-ecosystem
   skeletons extend it rather than this repo growing ecosystem branches.
@@ -131,7 +136,7 @@ None. No database, no persistent state.
   artifacts, their ignore rules land here; a repo that does not use the
   ecosystem simply never has matching files.
 - **No per-project overrides here.** A divergence is resolved in the consumer
-  repo, at the rebase, not by adding a project branch to the skeleton.
+  repo, at the merge, not by adding a project branch to the skeleton.
 
 **Known debt / open items**: the `vendor/` allow-list carve-out in `.ignore`
 is Laravel-specific; it is deliberately inert for non-PHP consumers.
@@ -144,17 +149,13 @@ Repository URL: https://github.com/99linesofcode/git-skeleton
 
 Primary Contact/Team: Jordy Schreuders (99linesofcode)
 
-Date of Last Update: 2026-10-06
+Date of Last Update: 2026-11-09
 
 ## 11. Glossary / Acronyms
 
-- **Skeleton** — a starter repository consumed via a secondary git remote and
-  rebase; the consumer owns its own history.
-- **Consumer** — a repository that has rebased onto this skeleton.
-- **Divergence point** — a rebase conflict; it marks where a consumer
-  deliberately differs from the shared default.
-- **Ecosystem skeleton** — a starter that builds on git-skeleton and adds a
-  language's toolchain (e.g. `node-skeleton`, `laravel-skeleton`).
+The domain terms live in [`GLOSSARY.md`](GLOSSARY.md); decisions live in
+[`docs/adr/`](docs/adr/).
+
 - **Lockfile** — the package manager's pinned dependency record
   (`package-lock.json`, `pnpm-lock.yaml`, `bun.lock`); always tracked.
 - **`.ignore`** — ignore rules for non-git tooling (ripgrep, etc.), distinct
@@ -165,10 +166,11 @@ Date of Last Update: 2026-10-06
 The house standards this repository expresses and the consumers inherit.
 
 - **The four files are the contract**: `.editorconfig`, `.prettierrc`,
-  `.gitignore`, `.ignore`. A consumer rebases onto them; it does not copy
+  `.gitignore`, `.ignore`. A consumer merges them; it does not copy
   them by hand.
-- **Rebase, don't fork**: updates arrive via
-  `git fetch git-skeleton && git rebase git-skeleton/main`. Resolve a
+- **Merge, don't rebase or fork**: updates arrive via
+  `git fetch git-skeleton && git merge git-skeleton/main`
+  ([ADR 0001](docs/adr/0001-merge-the-skeleton-never-rebase.md)). Resolve a
   conflict by keeping the consumer's override where it deliberately differs
   from the shared default — the conflict is the record of that divergence.
 - **Lockfiles are tracked, never ignored** — one per package manager,

@@ -10,14 +10,16 @@ find those at https://github.com/99linesofcode?tab=repositories&q=skeleton.
 
 ## How to use
 
-1. `git init`
-2. `git remote add origin <REPOSITORY>`
-3. `git remote add git-skeleton git@github.com:99linesofcode/git-skeleton.git`
-4. `git fetch git-skeleton`
-5. `git rebase git-skeleton/main`
+Run `/instantiate` from an empty directory to do all of this for you. By hand:
 
-Updates flow the same way: `git fetch git-skeleton && git rebase git-skeleton/main`.
-Conflicts on rebase are the divergence points — resolve them by keeping your
+1. `git init`
+2. `git remote add git-skeleton git@github.com:99linesofcode/git-skeleton.git`
+3. `git fetch git-skeleton`
+4. `git merge --allow-unrelated-histories git-skeleton/main`
+
+Updates flow the same way: `git fetch git-skeleton && git merge git-skeleton/main`.
+Merge, never rebase or squash ([ADR 0001](docs/adr/0001-merge-the-skeleton-never-rebase.md)).
+Merge conflicts are the divergence points: resolve them by keeping your
 repo's override where it differs from the shared default.
 
 ## Ecosystems
