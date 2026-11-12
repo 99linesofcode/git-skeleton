@@ -16,8 +16,7 @@ auth.json
 npm-debug.log
 
 # cache
-/.phpunit.cache
-/.phpunit.result.cache
+*.cache
 /build
 
 # build output
